@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using FullyEquipment.Helper;
 using Il2CppSystem.Collections.Generic;
 using UnityEngine.SceneManagement;
+using System;
 
 namespace FullyEquipment
 {
@@ -40,6 +41,15 @@ namespace FullyEquipment
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             isFinish = false;
+            if(sceneName == "Map")
+            {
+                removedUnusedItem();
+                EquipBasicWeapon();
+            }
+        }
+        void test(string str)
+        {
+            MelonLogger.Msg(str);
         }
         public override void OnUpdate()
         {
@@ -48,8 +58,11 @@ namespace FullyEquipment
             {
                 inputManager = gameManagerObj.GetComponent<InputManager>();
                 selectedBuilding = inputManager.selectedObject;
+
                 if (selectedBuilding != null && selectedBuilding.tag == "TownCenter" && !isFinish)
                 {
+                    var villagerStats = gameManagerObj.GetComponent<VillageStats>();
+                    villagerStats.BindOnVillagerJoinedAdded(new Action<string>(test));
                     GameObject.Destroy(GameObject.Find("ForceEquipWeaponButton"));
                     var getUIpausWindowList = Resources.FindObjectsOfTypeAll(Il2CppType.From(typeof(UIPauseWindow)));
 
@@ -76,6 +89,7 @@ namespace FullyEquipment
                                 var buttonActionuiButton = uiButton.GetComponent<Button>();
                                 buttonActionuiButton.onClick.AddListener(delegate
                                 {
+                                    removedUnusedItem();
                                     EquipBasicWeapon();
                                 });
 
@@ -119,14 +133,26 @@ namespace FullyEquipment
                 }
             }
         }
+        void removedUnusedItem()
+        {
+            var villagerList = GameObject.FindObjectsOfType<Villager>();
+            foreach (var villager in villagerList)
+            {
+                villager.add_onOccupationChanged(new Action<VillagerOccupation.Occupation>(ocOccupationChanged));
+            }
+        }
+        private void ocOccupationChanged(VillagerOccupation.Occupation occupation)
+        {
+            EquipBasicWeapon();
+        }
         void EquipBasicWeapon()
         {
             var villagerList = GameObject.FindObjectsOfType<Villager>();
-            foreach(var villager in villagerList)
+            foreach (var villager in villagerList) 
             {
                 var getUnusedItemsList = villager.occupation.unusedItemsToFree;
                 getUnusedItemsList.Contains(new ItemWeapon());
-                
+
                 var listToRemove = new List<Item>();
                 foreach (var item in getUnusedItemsList)
                 {
